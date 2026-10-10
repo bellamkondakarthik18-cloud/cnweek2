@@ -1,0 +1,43 @@
+#include <stdio.h>
+#include <string.h>
+
+#define DLE 0x10
+#define STX 0x02
+#define ETX 0x03
+
+/* ---------- Character (byte) stuffing ---------- */
+void show(const unsigned char *b, int n) {
+    for (int i = 0; i < n; i++) {
+        if (b[i] == DLE)      printf("DLE ");
+        else if (b[i] == STX) printf("STX ");
+        else if (b[i] == ETX) printf("ETX ");
+        else                  printf("%c ", b[i]);
+    }
+    printf("\n");
+}
+
+int charStuff(const unsigned char *d, int n, unsigned char *out) {
+    int k = 0;
+    out[k++] = DLE; out[k++] = STX;              /* start flag DLESTX */
+    for (int i = 0; i < n; i++) {
+        if (d[i] == DLE) out[k++] = DLE;         /* stuff an extra DLE */
+        out[k++] = d[i];
+    }
+    out[k++] = DLE; out[k++] = ETX;              /* end flag DLEETX */
+    return k;
+}
+
+int charUnstuff(const unsigned char *f, int n, unsigned char *out) {
+    int k = 0;
+    for (int i = 2; i < n - 2; i++) {            /* skip start/end flags */
+        if (f[i] == DLE) i++;                    /* DLE DLE -> keep one DLE */
+        out[k++] = f[i];
+    }
+    return k;
+}
+
+void charTest(const unsigned char *data, int n) {
+    unsigned char frame[100], back[100];
+    int fl = charStuff(data, n, frame);
+    int bl = charUnstuff(frame, fl, back);
+    printf("Original :
